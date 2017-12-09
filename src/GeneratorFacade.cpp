@@ -11,9 +11,9 @@ json world;
 char buff[10000000];
 
 extern "C" {
-	__declspec(dllexport) int createMap (int seed) {
+	__declspec(dllexport) int createMap (int seed, int w, int h) {
 
-		auto mapgen = new MapGenerator(1000, 1000);
+		auto mapgen = new MapGenerator(w, h);
 		mapgen->setSeed(seed);
 		mapgen->update();
 
@@ -33,6 +33,7 @@ extern "C" {
 			}
 			json_r["points"] = f_points;
 			json_r["biom"] = r->biom.name;
+			json_r["isLand"] = r->megaCluster->isLand;
 			regions.push_back(json_r);
 			i++;
 		}
