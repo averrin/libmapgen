@@ -1,6 +1,6 @@
 # Mapgen for Unity
 
-This is gui-less version of my c++ project [mapgen](https://github.com/averrin/mapgen). In this repo i will develop better landscape generation and interface for c# side invokation.
+This is gui-less version of my c++ project [mapgen](https://github.com/averrin/mapgen). In this repo i will develop better landscape generation and interface for c# side invoсation.
 
 # Usage
 
