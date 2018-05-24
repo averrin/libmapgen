@@ -8,6 +8,7 @@
 #include <iterator>
 #include <random>
 #include <algorithm>
+#include <fmt/format.h>
 
 template <typename T> using filterFunc = std::function<bool(T *)>;
 template <typename T> using sortFunc = std::function<bool(T *, T *)>;
@@ -318,6 +319,7 @@ void MapGenerator::update() {
   simulator = new Simulator(map, _seed);
   makeHeights();
   makeDiagram();
+  makeWind();
 
   makeRegions();
   makeMegaClusters();
@@ -338,6 +340,15 @@ void MapGenerator::update() {
   makeStates();
 
   ready = true;
+}
+
+void MapGenerator::makeWind() {
+  auto force = rand() / (double)RAND_MAX;
+  auto angle = rand() / (double)RAND_MAX * 360;
+  fmt::print("{} - {}\n", force, angle);
+
+  for (auto r: map->regions) {
+  }
 }
 
 void MapGenerator::startSimulation() {

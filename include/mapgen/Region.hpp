@@ -33,6 +33,7 @@ public:
   float temperature = 0.f;
   float minerals = 0.f;
   float nice = 0.f;
+  float windForce = 0.f;
   City* city = nullptr;
   std::vector<Region*> neighbors;
   bool hasRoad = false;

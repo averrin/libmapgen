@@ -72,6 +72,7 @@ private:
   void makeMinerals();
   void makeCities();
   void makeStates();
+  void makeWind();
 
   void getSea(std::vector<Region *> *seas, Region *base, Region *r);
   int _seed;
