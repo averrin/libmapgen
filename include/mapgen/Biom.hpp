@@ -14,6 +14,9 @@ struct Biom {
   bool operator!=(const Biom& b) const {
     return b.name != name;
   }
+  friend bool operator<(const Biom& l, const Biom& r) {
+    return l.name < r.name;
+  }
 };
 
 namespace biom {
