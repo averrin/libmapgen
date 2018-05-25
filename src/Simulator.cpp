@@ -99,6 +99,15 @@ void Simulator::fixRoads() {
                      }),
       map->roads.end());
 
+  mg::erase_if(map->roadMap,
+                     [&](auto p) {
+                       auto r = p.second;
+                       return r == nullptr || (r->regions.back()->city == nullptr &&
+                               r->regions.back()->location == nullptr) ||
+                              (r->regions.front()->city == nullptr &&
+                               r->regions.front()->location == nullptr);
+                     });
+
   for (auto c : map->cities) {
     if (c->roads.size() == 0) {
       c->region->city = nullptr;
@@ -182,7 +191,7 @@ void Simulator::disasterTick(int) {
 }
 
 void Simulator::economyTick(int y) {
-  mg::info("Economy year:", y * 10);
+  // mg::info("Economy year:", y * 10);
   std::vector<Package *> *goods = new std::vector<Package *>();
   for (auto c : map->cities) {
     c->economyVars = vars;
@@ -193,7 +202,7 @@ void Simulator::economyTick(int y) {
   }
   unsigned int gc = std::accumulate(goods->begin(), goods->end(), 0,
                             [](int s, Package *p2) { return s + p2->count; });
-  mg::info("Goods for sale:", gc);
+  // mg::info("Goods for sale:", gc);
   std::shuffle(map->cities.begin(), map->cities.end(), *_gen);
   unsigned int sn = 0;
   unsigned int ab = 0;
@@ -202,8 +211,8 @@ void Simulator::economyTick(int y) {
 	sn += r.first;
 	ab += r.second;
   }
-  mg::info("Bought:", ab);
-  mg::info("Still needs:", sn);
+  // mg::info("Bought:", ab);
+  // mg::info("Still needs:", sn);
 
   float w = 0.f;
   for (auto c : map->cities) {
@@ -275,6 +284,8 @@ void Simulator::makeRoads() {
     map->status = op;
     threads[i].join();
   }
+
+  map->roadMap.clear();
   for (auto r : map->roads) {
     auto c1 = r->regions.front()->city;
     auto c2 = r->regions.back()->city;
@@ -283,6 +294,22 @@ void Simulator::makeRoads() {
     }
     if (std::count(c2->roads.begin(), c2->roads.end(), r) == 0) {
       c2->roads.push_back(r);
+    }
+
+    auto shortRoad = new Road();
+    City* c3 = nullptr;
+    for (auto region : r->regions) {
+      shortRoad->regions.push_back(region);
+      if (region->city != nullptr && region != r->regions.front()) {
+        c3 = region->city;
+        if (c1->type == LocationType::PORT && c3->type == LocationType::PORT && !r->regions[1]->cluster->isLand) {
+          shortRoad->seaPath = true;
+        }
+        break;
+      }
+    }
+    if (c3 != nullptr) {
+      map->roadMap.insert(std::make_pair(std::make_pair(c1, c3), shortRoad));
     }
   }
   std::shuffle(map->roads.begin(), map->roads.end(), *_gen);
@@ -436,6 +463,8 @@ void Simulator::makeLocationRoads() {
     }
     Road *road = new Road(&path, 1);
     map->roads.push_back(road);
+
+    map->roadMap.insert(std::make_pair(std::make_pair(l, c), road));
   }
   delete _pather;
 }

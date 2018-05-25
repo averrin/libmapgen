@@ -21,6 +21,7 @@ public:
   std::vector<City *> cities;
   std::vector<Location *> locations;
   std::vector<Road *> roads;
+  std::map<std::pair<Location*, Location*>, Road*> roadMap;
 
   std::string status = "";
 

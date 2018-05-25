@@ -27,5 +27,13 @@ namespace mg {
   void warn(std::string prefix, std::string value);
   void warn(std::string prefix, int value);
   void warn(std::string prefix, City value);
+
+  template< typename ContainerT, typename PredicateT >
+  void erase_if( ContainerT& items, const PredicateT& predicate ) {
+    for( auto it = items.begin(); it != items.end(); ) {
+      if( predicate(*it) ) it = items.erase(it);
+      else ++it;
+    }
+  };
 };
 #endif
