@@ -94,7 +94,7 @@ Region* MapGenerator::getRegionWithDirection(Region* r, int angle) {
     }
   }
   if (cabs > 30) return nullptr;
-  // fmt::print("{} - {}  = {}\n", mar, angle, cabs);
+  fmt::print("{} - {}  = {}\n", mar, angle, cabs);
   return nr;
 }
 
@@ -372,9 +372,6 @@ void MapGenerator::makeWind() {
   windForce = rand() / (double)RAND_MAX;
   windAngle = rand() / (double)RAND_MAX * 270;
   fmt::print("{} - {}\n", windForce, windAngle);
-
-  for (auto r: map->regions) {
-  }
 }
 
 void MapGenerator::startSimulation() {
@@ -462,7 +459,7 @@ void MapGenerator::makeCities() {
     places = filterObjects(
         mc->regions,
         (filterFunc<Region>)[&](Region * r) {
-          return r->city == nullptr && r->nice > 0.65 &&
+          return r->city == nullptr && r->nice > 0.7 &&
                  r->biom.feritlity > 0.7 && r->biom != biom::LAKE;
         },
         (sortFunc<Region>)[&](Region * r, Region * r2) {
