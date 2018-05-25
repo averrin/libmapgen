@@ -72,6 +72,32 @@ MapGenerator::MapGenerator(int w, int h) : _w(w), _h(h) {
   _gen = new std::mt19937(_seed);
 }
 
+
+Region* MapGenerator::getRegionWithDirection(Region* r, int angle) {
+  Region* nr = nullptr;
+  float cabs = 360.0;
+  float ar = 0.0;
+  float mar = 0.0;
+  for (auto n : r->neighbors) {
+    if (n->cluster->isLand && r->cluster->isLand && n->getHeight(n->site) > r->getHeight(r->site)) {
+      continue;
+    }
+
+    auto dx = n->site->x - r->site->x;
+    auto dy = n->site->y - r->site->y;
+    ar = atan2(dy, dx);
+    ar *= 180 / M_PI;
+    if (nr == nullptr || abs(ar - angle) < cabs) {
+      nr = n;
+      mar = ar;
+      cabs = abs(ar - angle);
+    }
+  }
+  if (cabs > 30) return nullptr;
+  // fmt::print("{} - {}  = {}\n", mar, angle, cabs);
+  return nr;
+}
+
 void MapGenerator::makeStates() {
   map->status = "Making states...";
   map->stateClusters.clear();
@@ -319,7 +345,6 @@ void MapGenerator::update() {
   simulator = new Simulator(map, _seed);
   makeHeights();
   makeDiagram();
-  makeWind();
 
   makeRegions();
   makeMegaClusters();
@@ -328,6 +353,7 @@ void MapGenerator::update() {
   if (simpleRivers) {
     simplifyRivers();
   }
+  makeWind();
   calcHumidity();
   calcTemp();
 
@@ -343,9 +369,9 @@ void MapGenerator::update() {
 }
 
 void MapGenerator::makeWind() {
-  auto force = rand() / (double)RAND_MAX;
-  auto angle = rand() / (double)RAND_MAX * 360;
-  fmt::print("{} - {}\n", force, angle);
+  windForce = rand() / (double)RAND_MAX;
+  windAngle = rand() / (double)RAND_MAX * 270;
+  fmt::print("{} - {}\n", windForce, windAngle);
 
   for (auto r: map->regions) {
   }
@@ -436,7 +462,7 @@ void MapGenerator::makeCities() {
     places = filterObjects(
         mc->regions,
         (filterFunc<Region>)[&](Region * r) {
-          return r->city == nullptr && r->nice > 0.8 &&
+          return r->city == nullptr && r->nice > 0.65 &&
                  r->biom.feritlity > 0.7 && r->biom != biom::LAKE;
         },
         (sortFunc<Region>)[&](Region * r, Region * r2) {
@@ -791,11 +817,16 @@ void MapGenerator::makeFinalRegions() {
       if (ht > biom::BIOMS[i].border) {
         int n = (biom::BIOMS_BY_HEIGHT[i].size() - 1) -
                 r->humidity * (biom::BIOMS_BY_HEIGHT[i].size() - 1);
+        if (n < 0) continue;
+          // std::cout<< i << "||" << n << std::endl;
         b = biom::BIOMS_BY_HEIGHT[i][n];
         if (biom::BIOMS_BY_TEMP.count(b.name) != 0) {
           if (r->temperature > temperature * 4 / 5 && r->humidity < 0.2) {
             b = biom::BIOMS_BY_TEMP.at(b.name);
           }
+        }
+        if (b.name == "") {
+          std::cout<< i << "||" << n << std::endl;
         }
       }
     }
@@ -808,6 +839,10 @@ void MapGenerator::makeFinalRegions() {
     tc = tc <= 0 ? 0 : tc / 3.f;
 
     r->nice = hc + hic + tc;
+        // if (r->biom.name == "") {
+        //   std::cout<< r->humidity << "||" << r->nice << std::endl;
+        //   // std::cout<< i << "||" << n << std::endl;
+        // }
   }
 
   for (auto cluster : map->megaClusters) {
@@ -893,10 +928,6 @@ bool isDiscard(const Cluster *c) { return c->regions.size() == 0; }
 void MapGenerator::calcTemp() {
   map->status = "Making world cool...";
   for (auto r : map->regions) {
-    if (!r->megaCluster->isLand) {
-      r->temperature = temperature + 5;
-      continue;
-    }
     // TODO: adjust it
     r->temperature = temperature - (temperature / 5 * r->humidity) -
                      (temperature / 1.2 * r->getHeight(r->site));
@@ -908,6 +939,27 @@ void MapGenerator::calcTemp() {
       }
     }
   }
+
+    for (Region *region : map->regions) {
+      if (!region->cluster->isLand) continue;
+      auto r2 = getRegionWithDirection(region, windAngle);
+      if (r2 != nullptr) {
+        if (r2->temperature > region->temperature) {
+          region->temperature += windForce * r2->temperature;
+        } else {
+          region->temperature -= 1 * windForce * r2->temperature;
+        }
+      }
+    }
+    for (Region *region : map->regions) {
+      auto i = 1;
+      auto h = 0.f;
+      for (auto n: region->neighbors) {
+        h += n->temperature;
+        i++;
+      }
+      region->temperature = h/float(i);
+    }
 }
 
 void MapGenerator::calcHumidity() {
@@ -950,6 +1002,29 @@ void MapGenerator::calcHumidity() {
   std::reverse(map->regions.begin(), map->regions.end());
   calcRegionsHum();
   std::reverse(map->regions.begin(), map->regions.end());
+
+
+    for (Region *region : map->regions) {
+      if (!region->cluster->isLand) continue;
+      auto r2 = getRegionWithDirection(region, windAngle);
+      if (r2 != nullptr) {
+        if (r2->humidity > region->humidity) {
+          region->humidity += windForce * r2->humidity;
+        } else {
+          region->humidity -= 0.2 * windForce * r2->humidity;
+        }
+      }
+    }
+
+    for (Region *region : map->regions) {
+      auto i = 1;
+      auto h = 0.f;
+      for (auto n: region->neighbors) {
+        h += n->humidity;
+        i++;
+      }
+      region->humidity = h/float(i);
+    }
 }
 
 std::vector<Cluster *> MapGenerator::clusterize(std::vector<Region *> regions,

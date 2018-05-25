@@ -45,6 +45,10 @@ public:
   void setMapTemplate(const char *t);
   void startSimulation();
 
+  Region* getRegionWithDirection(Region* r, int angle);
+    float windForce;
+    float windAngle;
+
   bool simpleRivers;
   bool ready;
   float temperature;
