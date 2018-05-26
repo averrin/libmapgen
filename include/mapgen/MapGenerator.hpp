@@ -11,6 +11,7 @@
 #include "Region.hpp"
 #include "Simulator.hpp"
 #include "State.hpp"
+#include "WeatherManager.hpp"
 #include "micropather.h"
 
 typedef std::function<bool(Region *, Region *)> sameFunc;
@@ -39,21 +40,16 @@ public:
   float getFrequency();
   int getSeed();
   Region *getRegion(Region* r, sf::Vector2f pos);
- // std::vector<sf::ConvexShape> *getPolygons();
   void seed();
   std::vector<Region *> getRegions();
   void setMapTemplate(const char *t);
   void startSimulation();
 
-  Region* getRegionWithDirection(Region* r, int angle);
-    float windForce;
-    float windAngle;
-
   bool simpleRivers;
   bool ready;
-  float temperature;
   Map *map;
   Simulator *simulator;
+  std::unique_ptr<WeatherManager> weather;
 
   template <typename Iter> Iter select_randomly(Iter start, Iter end);
 
@@ -76,7 +72,6 @@ private:
   void makeMinerals();
   void makeCities();
   void makeStates();
-  void makeWind();
 
   void getSea(std::vector<Region *> *seas, Region *base, Region *r);
   int _seed;

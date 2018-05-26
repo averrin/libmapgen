@@ -45,6 +45,8 @@ public:
   bool isCoast();
   bool isLakeCoast();
 
+  Region* getRegionWithDirection(float angle, float force);
+
 private:
 	PointList _verticies;
   HeightMap _heights;
