@@ -1,6 +1,7 @@
 #ifndef LOCATION_H_
 #define LOCATION_H_
 
+#include <memory>
 #include "Region.hpp"
 
 enum LocationType {
@@ -16,8 +17,8 @@ enum LocationType {
 
 class Location {
 public:
-  Location(Region* r, std::string n, LocationType t);
-  Region* region;
+  Location(std::shared_ptr<Region> r, std::string n, LocationType t);
+  std::shared_ptr<Region> region = nullptr;
   std::string name;
   LocationType type;
   std::string typeName;

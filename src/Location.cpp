@@ -1,7 +1,7 @@
 #include "mapgen/Location.hpp"
 
-Location::Location(Region *r, std::string n, LocationType t) : region(r), name(n), type(t) {
-  region->location = this;
+Location::Location(std::shared_ptr<Region>r, std::string n, LocationType t) : region(r), name(n), type(t) {
+  region->location = std::shared_ptr<Location>(this);
 
   switch (this->type) {
   case CAPITAL:

@@ -1,6 +1,7 @@
 #ifndef REGION_H_
 #define REGION_H_
 
+#include <memory>
 #include <vector>
 #include "Biom.hpp"
 #include "State.hpp"
@@ -24,9 +25,9 @@ public:
   Biom biom;
   Point site;
   bool hasRiver = false;
-  Cluster *cluster = nullptr;
-  Cluster *stateCluster = nullptr;
-  MegaCluster *megaCluster = nullptr;
+  std::shared_ptr<Cluster>cluster = nullptr;
+  std::shared_ptr<Cluster>stateCluster = nullptr;
+  std::shared_ptr<MegaCluster>megaCluster = nullptr;
   bool border = false;
   float humidity = 0.f;
   Cell* cell = nullptr;
@@ -34,37 +35,39 @@ public:
   float minerals = 0.f;
   float nice = 0.f;
   float windForce = 0.f;
-  City* city = nullptr;
-  std::vector<Region*> neighbors;
+  std::shared_ptr<City> city = nullptr;
+  std::vector<std::shared_ptr<Region>> neighbors;
   bool hasRoad = false;
   int traffic = 0;
-  Location* location = nullptr;
+  std::shared_ptr<Location> location = nullptr;
   State* state = nullptr;
   bool stateBorder = false;
   bool seaBorder = false;
   bool isCoast();
   bool isLakeCoast();
 
-  Region* getRegionWithDirection(float angle, float force);
+  std::shared_ptr<Region> getRegionWithDirection(float angle, float force);
 
 private:
 	PointList _verticies;
   HeightMap _heights;
 };
 
+typedef std::vector<std::shared_ptr<Region>> RegionList;
+
 struct Cluster {
   std::string name = "";
-  std::vector<Region*> regions;
-  std::vector<Cluster*> neighbors;
-  MegaCluster* megaCluster = nullptr;
+  RegionList regions;
+  std::vector<std::shared_ptr<Cluster>> neighbors;
+  std::shared_ptr<MegaCluster> megaCluster = nullptr;
   Biom biom;
   bool hasRiver = false;;
   bool isLand = false;;
   Point* center = nullptr;
   PointList border;
-  std::vector<Region*> resourcePoints;
-  std::vector<Region*> goodPoints;
-  std::vector<City*> cities;
+  RegionList resourcePoints;
+  RegionList goodPoints;
+  std::vector<std::shared_ptr<City>> cities;
   bool hasPort = false;
   std::vector<State*> states;
 };

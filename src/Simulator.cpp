@@ -12,13 +12,13 @@
 #include <thread>
 #include <numeric>
 
-template <typename T> using filterFunc = std::function<bool(T *)>;
-template <typename T> using sortFunc = std::function<bool(T *, T *)>;
+template <typename T> using filterFunc = std::function<bool(std::shared_ptr<T>)>;
+template <typename T> using sortFunc = std::function<bool(std::shared_ptr<T>, std::shared_ptr<T>)>;
 
 template <typename T>
-std::vector<T *> filterObjects(std::vector<T *> regions, filterFunc<T> filter,
+std::vector<std::shared_ptr<T>> filterObjects(std::vector<std::shared_ptr<T>> regions, filterFunc<T> filter,
                                sortFunc<T> sort) {
-  std::vector<T *> places;
+  std::vector<std::shared_ptr<T>> places;
 
   std::copy_if(regions.begin(), regions.end(), std::back_inserter(places),
                filter);
@@ -54,7 +54,7 @@ void Simulator::simulate() {
 }
 
 void Simulator::removeCities() {
-  // mapgen->map->cities.erase(std::remove_if(mapgen->map->cities.begin(), mapgen->map->cities.end(), [](City* c){
+  // mapgen->map->cities.erase(std::remove_if(mapgen->map->cities.begin(), mapgen->map->cities.end(), [](std::shared_ptr<City> c){
   //     return c->roads.}), mapgen->map->cities.end());
 }
 
@@ -228,12 +228,12 @@ void Simulator::economyTick(int y) {
   report->wealth.push_back(w);
 }
 
-Road *makeRoad(Map *map, City *c, City *oc) {
+Road *makeRoad(Map *map, std::shared_ptr<City>c, std::shared_ptr<City>oc) {
   auto pather = new micropather::MicroPather(map);
   micropather::MPVector<void *> path;
   float totalCost = 0;
   pather->Reset();
-  int result = pather->Solve(c->region, oc->region, &path, &totalCost);
+  int result = pather->Solve(c->region.get(), oc->region.get(), &path, &totalCost);
   delete pather;
   if (result != micropather::MicroPather::SOLVED) {
     mg::warn("No road from", *c);
@@ -260,13 +260,13 @@ void Simulator::makeRoads() {
   std::mutex g_lock;
   for (auto c : map->cities) {
     for (auto oc :
-         std::vector<City *>(map->cities.begin() + n, map->cities.end())) {
+         std::vector<std::shared_ptr<City>>(map->cities.begin() + n, map->cities.end())) {
       sprintf(op, "Making roads [%d/%d]", k, tc);
       if (c == oc) {
         continue;
       }
       map->status = op;
-      threads[k] = std::thread([&](City* c, City* oc) {
+      threads[k] = std::thread([&](std::shared_ptr<City> c, std::shared_ptr<City> oc) {
         auto road = makeRoad(map, c, oc);
         if (road == nullptr) {
           return;
@@ -297,7 +297,7 @@ void Simulator::makeRoads() {
     }
 
     auto shortRoad = new Road();
-    City* c3 = nullptr;
+    std::shared_ptr<City> c3 = nullptr;
     for (auto region : r->regions) {
       shortRoad->regions.push_back(region);
       if (region->city != nullptr && region != r->regions.front()) {
@@ -326,11 +326,11 @@ void Simulator::makeCaves() {
     int n = c->regions.size() / 50 + 1;
 
     while (n != 0) {
-      Region *r = *select_randomly(c->regions.begin(), c->regions.end());
+      std::shared_ptr<Region>r = *select_randomly(c->regions.begin(), c->regions.end());
       if (r->location != nullptr) {
         continue;
       }
-      Location *l = new Location(r, names::generateCityName(_gen), CAVE);
+      auto l = std::make_shared<Location>(r, names::generateCityName(_gen), CAVE);
       map->locations.push_back(l);
       n--;
       i++;
@@ -341,12 +341,12 @@ void Simulator::makeCaves() {
 
 void Simulator::upgradeCities() {
   map->status = "Upgrade cities...";
-  std::vector<City *> _cities;
+  std::vector<std::shared_ptr<City>> _cities;
   for (auto state : map->states) {
     _cities = filterObjects(
         map->cities,
-        (filterFunc<City>)[&](City * c) { return c->region->state == state; },
-        (sortFunc<City>)[&](City * c, City * c2) {
+        (filterFunc<City>)[&](std::shared_ptr<City> c) { return c->region->state == state; },
+        (sortFunc<City>)[&](std::shared_ptr<City> c, std::shared_ptr<City> c2) {
           if (c->wealth > c2->wealth) {
             return true;
           }
@@ -371,10 +371,10 @@ void Simulator::upgradeCities() {
 
 void Simulator::removeBadPorts() {
   map->status = "Abandonning ports...";
-  std::vector<City *> cities;
+  std::vector<std::shared_ptr<City>> cities;
   int n = 0;
   std::copy_if(map->cities.begin(), map->cities.end(),
-               std::back_inserter(cities), [&](City *c) {
+               std::back_inserter(cities), [&](std::shared_ptr<City>c) {
                  bool badPort = c->type == PORT &&
                                 c->region->traffic <= int(map->cities.size());
                  if (badPort) {
@@ -399,7 +399,7 @@ void Simulator::removeBadPorts() {
 
 void Simulator::makeLighthouses() {
   map->status = "Make lighthouses...";
-  std::vector<Region *> cache;
+  RegionList cache;
   for (auto r : map->regions) {
     if (r->city != nullptr) {
       continue;
@@ -424,7 +424,7 @@ void Simulator::makeLighthouses() {
       }
     }
     if (i >= 3) {
-      Location *l = new Location(r, names::generateCityName(_gen), LIGHTHOUSE);
+      auto l = std::make_shared<Location>(r, names::generateCityName(_gen), LIGHTHOUSE);
       map->locations.push_back(l);
       cache.push_back(l->region);
     }
@@ -440,7 +440,7 @@ void Simulator::makeLocationRoads() {
     if (mc->cities.size() == 0) {
       continue;
     }
-    std::sort(mc->cities.begin(), mc->cities.end(), [&](City *c, City *c2) {
+    std::sort(mc->cities.begin(), mc->cities.end(), [&](std::shared_ptr<City>c, std::shared_ptr<City>c2) {
       if (mg::getDistance(l->region->site, c->region->site) <
           mg::getDistance(l->region->site, c2->region->site)) {
         return true;
@@ -448,7 +448,7 @@ void Simulator::makeLocationRoads() {
       return false;
     });
     int n = 0;
-    City *c = mc->cities[n];
+    std::shared_ptr<City>c = mc->cities[n];
     while (c->region->city == nullptr) {
       n++;
       c = mc->cities[n];
@@ -457,7 +457,7 @@ void Simulator::makeLocationRoads() {
     micropather::MPVector<void *> path;
     float totalCost = 0;
     _pather->Reset();
-    int result = _pather->Solve(c->region, l->region, &path, &totalCost);
+    int result = _pather->Solve(c->region.get(), l->region.get(), &path, &totalCost);
     if (result != micropather::MicroPather::SOLVED) {
       continue;
     }
@@ -472,8 +472,8 @@ void Simulator::makeLocationRoads() {
 void Simulator::makeForts() {
   map->status = "Make forts...";
   // TODO: uncluster it too
-  std::vector<Region *> regions;
-  std::vector<Region *> cache;
+  RegionList regions;
+  RegionList cache;
   for (auto mc : map->megaClusters) {
     if (mc->states.size() < 2) {
       continue;
@@ -481,12 +481,12 @@ void Simulator::makeForts() {
 
     for (auto state : mc->states) {
       regions = filterObjects(mc->regions,
-                              (filterFunc<Region>)[&](Region * region) {
+                              (filterFunc<Region>)[&](std::shared_ptr<Region> region) {
                                 bool cond = region->stateBorder &&
                                             !region->seaBorder &&
                                             region->state == state;
                                 // if (cond && std::none_of(cache.begin(),
-                                // cache.end(), [&](Region *ri){
+                                // cache.end(), [&](std::shared_ptr<Region>ri){
                                 //       for (auto rn : cache) {
                                 //         if (mg::getDistance(ri->site,
                                 //         rn->site) < 20 && ri->state ==
@@ -502,7 +502,7 @@ void Simulator::makeForts() {
                                 // }
                                 return cond;
                               },
-                              (sortFunc<Region>)[&](Region * r, Region * r2) {
+                              (sortFunc<Region>)[&](std::shared_ptr<Region> r, std::shared_ptr<Region> r2) {
                                 if (r->traffic > r2->traffic) {
                                   return true;
                                 }
@@ -511,7 +511,7 @@ void Simulator::makeForts() {
 
       int n = 0;
       while (n < std::min(2, int(regions.size()))) {
-        City *c = new City(regions[n], names::generateCityName(_gen), FORT);
+        auto c = std::make_shared<City>(regions[n], names::generateCityName(_gen), FORT);
         for (auto oc : map->cities) {
           auto road = makeRoad(map, c, oc);
           if (road == nullptr) {

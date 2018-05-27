@@ -8,7 +8,7 @@ class Road {
 public:
   Road();
   Road(micropather::MPVector<void *>* path, float c);
-  std::vector<Region *> regions;
+  RegionList regions;
   float cost;
   bool seaPath = false;
 };

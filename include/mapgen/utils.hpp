@@ -8,15 +8,15 @@ namespace fs = std::experimental::filesystem;
 
 typedef sf::Vector2<double>* Point;
 namespace mg {
-	template <typename T> using filterFunc = std::function<bool(T *)>;
-	template <typename T> using sortFunc = std::function<bool(T *, T *)>;
+	template <typename T> using filterFunc = std::function<bool(std::shared_ptr<T>)>;
+	template <typename T> using sortFunc = std::function<bool(std::shared_ptr<T>, std::shared_ptr<T>)>;
 
 
   double getDistance(Point p, Point p2);
 
   template <typename T>
-  std::vector<T *> filterObjects(std::vector<T *> regions,
-                                 std::function<bool(T *)> filter, std::function<bool(T *, T *)> sort);
+  std::vector<std::shared_ptr<T>> filterObjects(std::vector<std::shared_ptr<T>> regions,
+                                 std::function<bool(std::shared_ptr<T>)> filter, std::function<bool(std::shared_ptr<T>, std::shared_ptr<T>)> sort);
 
   void before(std::string method);
   void after(std::string method);
