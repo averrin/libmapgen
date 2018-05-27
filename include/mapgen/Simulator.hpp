@@ -7,7 +7,7 @@
 
 class Simulator{
 public:
-  Simulator(Map* m, int s);
+  Simulator(std::shared_ptr<Map> m, int s);
   void simulate();
   void resetAll();
 
@@ -36,7 +36,7 @@ private:
   Iter select_randomly(Iter start, Iter end);
   bool plague = false;
 
-  Map* map;
+  std::shared_ptr<Map> map;
   std::mt19937* _gen;
   int _seed;
   micropather::MicroPather* _pather;

@@ -47,8 +47,8 @@ public:
 
   bool simpleRivers;
   bool ready;
-  Map *map;
-  Simulator *simulator;
+  std::shared_ptr<Map> map;
+  std::shared_ptr<Simulator> simulator;
   std::shared_ptr<WeatherManager> weather = nullptr;
 
   template <typename Iter> Iter select_randomly(Iter start, Iter end);
