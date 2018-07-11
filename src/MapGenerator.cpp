@@ -8,7 +8,6 @@
 #include <iterator>
 #include <random>
 #include <algorithm>
-#include <fmt/format.h>
 
 template <typename T> using filterFunc = std::function<bool(std::shared_ptr<T>)>;
 template <typename T> using sortFunc = std::function<bool(std::shared_ptr<T>, std::shared_ptr<T>)>;
