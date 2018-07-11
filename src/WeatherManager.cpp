@@ -1,5 +1,4 @@
 #include "mapgen/WeatherManager.hpp"
-#include <fmt/format.h>
 
 WeatherManager::WeatherManager() {}
 
@@ -7,7 +6,6 @@ WeatherManager::WeatherManager() {}
 void WeatherManager::genWind() {
   windForce = rand() / (double)RAND_MAX;
   windAngle = rand() / (double)RAND_MAX * 270;
-  fmt::print("{} - {}\n", windForce, windAngle);
 }
 
 
