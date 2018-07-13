@@ -26,7 +26,7 @@ std::vector<std::shared_ptr<T>> filterObjects(std::vector<std::shared_ptr<T>> re
   return places;
 }
 
-Simulator::Simulator(std::shared_ptr<Map> m, int s) : map(m), _seed(s) {
+Simulator::Simulator(Map *m, int s) : map(m), _seed(s) {
   _gen = new std::mt19937(_seed);
   vars = new EconomyVars();
   report = nullptr;
@@ -228,8 +228,8 @@ void Simulator::economyTick(int y) {
   report->wealth.push_back(w);
 }
 
-Road *makeRoad(std::shared_ptr<Map> map, std::shared_ptr<City>c, std::shared_ptr<City>oc) {
-  auto pather = new micropather::MicroPather(map.get());
+Road *makeRoad(Map *map, std::shared_ptr<City>c, std::shared_ptr<City>oc) {
+  auto pather = new micropather::MicroPather(map);
   micropather::MPVector<void *> path;
   float totalCost = 0;
   pather->Reset();
@@ -433,7 +433,7 @@ void Simulator::makeLighthouses() {
 
 void Simulator::makeLocationRoads() {
 
-  auto _pather = new micropather::MicroPather(map.get());
+  auto _pather = new micropather::MicroPather(map);
   map->status = "Make small roads...";
   for (auto l : map->locations) {
     auto mc = l->region->megaCluster;

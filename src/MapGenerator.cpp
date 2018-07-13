@@ -309,9 +309,13 @@ void MapGenerator::setPointCount(int c) { _pointsCount = c; }
 //TODO: add "light" for applying new weather
 void MapGenerator::update() {
   ready = false;
+  if (map != nullptr) {
+    delete map;
+    delete simulator;
+  }
 
-  map = std::make_shared<Map>();
-  simulator = std::make_shared<Simulator>(map, _seed);
+  map = new Map();
+  simulator = new Simulator(map, _seed);
   weather = std::make_shared<WeatherManager>();
   makeHeights();
   makeDiagram();
@@ -899,6 +903,7 @@ std::vector<std::shared_ptr<Cluster>> MapGenerator::clusterize(std::vector<std::
 
   std::map<std::shared_ptr<Region>, std::shared_ptr<Cluster>> _clusters;
   for (auto r : regions) {
+  fmt::print("hi in clusterize r\n");
     bool cu = true;
     std::shared_ptr<Cluster> knownCluster = nullptr;
     for (auto rn : r->neighbors) {
