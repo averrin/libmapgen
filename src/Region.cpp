@@ -19,19 +19,19 @@ float Region::getHeight(Point p) {
 }
 
 bool Region::isCoast() {
-  return std::count_if(neighbors.begin(), neighbors.end(), [&](std::shared_ptr<Region> n) {
+  return std::count_if(neighbors.begin(), neighbors.end(), [&](Region* n) {
       return !n->megaCluster->isLand;
     }) != 0;
 }
 
 bool Region::isLakeCoast() {
-  return std::count_if(neighbors.begin(), neighbors.end(), [&](std::shared_ptr<Region> n) {
+  return std::count_if(neighbors.begin(), neighbors.end(), [&](Region* n) {
       return n->biom == biom::LAKE;
     }) != 0;
 }
 
-std::shared_ptr<Region> Region::getRegionWithDirection(float angle, float force) {
-  std::shared_ptr<Region> nr = nullptr;
+Region* Region::getRegionWithDirection(float angle, float force) {
+  Region* nr = nullptr;
   float cabs = 360.0;
   float ar = 0.0;
   float mar = 0.0;
@@ -45,7 +45,6 @@ std::shared_ptr<Region> Region::getRegionWithDirection(float angle, float force)
     auto dy = n->site->y - site->y;
     ar = atan2(dy, dx);
     ar *= 180.f / M_PI;
-    if (angle > 180) ar+=180;
     if (nr == nullptr || abs(ar - angle) < cabs) {
       nr = n;
       mar = ar;

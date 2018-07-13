@@ -6,7 +6,7 @@
 struct River {
   std::string name;
   PointList* points;
-  RegionList regions;
+  std::vector<Region*> regions;
 };
 
 #endif

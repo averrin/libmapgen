@@ -6,8 +6,8 @@
 class WeatherManager {
 public:
     WeatherManager();
-    void calcTemp(RegionList r);
-    void calcHumidity(RegionList r);
+    void calcTemp(std::vector<Region *> r);
+    void calcHumidity(std::vector<Region *> r);
     void genWind();
 
 

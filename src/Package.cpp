@@ -3,9 +3,9 @@
 #include "mapgen/Road.hpp"
 #include "mapgen/utils.hpp"
 
-Package::Package(std::shared_ptr<City>o, PackageType t, unsigned int c) : owner(o), type(t), count(c) {}
+Package::Package(City *o, PackageType t, unsigned int c) : owner(o), type(t), count(c) {}
 
-void Package::buy(std::shared_ptr<City>buyer, float price, unsigned int c) {
+void Package::buy(City *buyer, float price, unsigned int c) {
   count -= c;
   owner->wealth += (float)price / (float)owner->population * c;
   owner->wealth = std::max(owner->wealth, 0.f);

@@ -4,9 +4,9 @@
 #include "mapgen/Region.hpp"
 #include "mapgen/utils.hpp"
 
-City::City(std::shared_ptr<Region>r, std::string n, LocationType t)
+City::City(Region *r, std::string n, LocationType t)
     : Location::Location(r, n, t), isCapital(false) {
-  region->city = std::shared_ptr<City>(this);
+  region->city = this;
 }
 
 Package *City::makeGoods(int y) {
@@ -16,12 +16,12 @@ Package *City::makeGoods(int y) {
   case AGRO:
     p = region->nice * economyVars->PACKAGES_PER_NICE * population *
         economyVars->PACKAGES_AGRO_POPULATION_MODIFIER;
-    goods = new Package(std::shared_ptr<City>(this), AGROCULTURE, p);
+    goods = new Package(this, AGROCULTURE, p);
     break;
   case MINE:
     p = region->minerals * economyVars->PACKAGES_PER_MINERALS * population *
         economyVars->PACKAGES_MINERALS_POPULATION_MODIFIER;
-    goods = new Package(std::shared_ptr<City>(this), MINERALS, p);
+    goods = new Package(this, MINERALS, p);
     break;
   }
   return goods;
@@ -41,7 +41,7 @@ std::pair<int,int> City::buyGoods(std::vector<Package *> *goods) {
 
   std::copy_if(
       goods->begin(), goods->end(), std::back_inserter(mineralsCandidates),
-      [&](Package *p) { return p->type == MINERALS && p->owner.get() != this; });
+      [&](Package *p) { return p->type == MINERALS && p->owner != this; });
   std::sort(mineralsCandidates.begin(), mineralsCandidates.end(),
             [&](Package *p1, Package *p2) {
               if (getPrice(p1) < getPrice(p2)) {
@@ -51,7 +51,7 @@ std::pair<int,int> City::buyGoods(std::vector<Package *> *goods) {
             });
   std::copy_if(
       goods->begin(), goods->end(), std::back_inserter(agroCandidates),
-      [&](Package *p) { return p->type == AGROCULTURE && p->owner.get() != this; });
+      [&](Package *p) { return p->type == AGROCULTURE && p->owner != this; });
   std::sort(agroCandidates.begin(), agroCandidates.end(),
             [&](Package *p1, Package *p2) {
               if (getPrice(p1) < getPrice(p2)) {
@@ -73,7 +73,7 @@ std::pair<int,int> City::buyGoods(std::vector<Package *> *goods) {
 	  }
 	  b += c;
       agroNeeded -= c;
-      p->buy(std::shared_ptr<City>(this), price, c);
+      p->buy(this, price, c);
       goods->erase(std::remove(goods->begin(), goods->end(), p));
       n++;
     }
@@ -92,7 +92,7 @@ std::pair<int,int> City::buyGoods(std::vector<Package *> *goods) {
 	  }
 	  b += c;
       mineralsNeeded -= c;
-      p->buy(std::shared_ptr<City>(this), price, c);
+      p->buy(this, price, c);
       goods->erase(std::remove(goods->begin(), goods->end(), p));
       n++;
     }

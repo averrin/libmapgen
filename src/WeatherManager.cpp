@@ -9,7 +9,7 @@ void WeatherManager::genWind() {
 }
 
 
-void WeatherManager::calcTemp(RegionList regions) {
+void WeatherManager::calcTemp(std::vector<Region*> regions) {
   for (auto r : regions) {
     // TODO: adjust it
     r->temperature = temperature - (temperature / 5 * r->humidity) -
@@ -22,7 +22,7 @@ void WeatherManager::calcTemp(RegionList regions) {
     }
   }
 
-    for (std::shared_ptr<Region>region : regions) {
+    for (Region *region : regions) {
       if (!region->cluster->isLand) continue;
       auto r2 = region->getRegionWithDirection(windAngle, windForce);
       if (r2 != nullptr) {
@@ -33,7 +33,7 @@ void WeatherManager::calcTemp(RegionList regions) {
         }
       }
     }
-    for (std::shared_ptr<Region>region : regions) {
+    for (Region *region : regions) {
       auto i = 1;
       auto h = 0.f;
       for (auto n: region->neighbors) {
@@ -44,10 +44,10 @@ void WeatherManager::calcTemp(RegionList regions) {
     }
 }
 
-void WeatherManager::calcHumidity(RegionList regions) {
+void WeatherManager::calcHumidity(std::vector<Region*> regions) {
   for (auto r : regions) {
     r->humidity = biom::DEFAULT_HUMIDITY;
-    if (!r->megaCluster->isLand || r->biom == biom::LAKE) {
+    if (!r->megaCluster->isLand) {
       r->humidity = 1;
       continue;
     }
@@ -81,7 +81,7 @@ void WeatherManager::calcHumidity(RegionList regions) {
   std::reverse(regions.begin(), regions.end());
 
 
-    for (std::shared_ptr<Region>region : regions) {
+    for (Region *region : regions) {
       if (!region->cluster->isLand) continue;
       auto r2 = region->getRegionWithDirection(windAngle, windForce);
       if (r2 != nullptr) {
@@ -93,7 +93,7 @@ void WeatherManager::calcHumidity(RegionList regions) {
       }
     }
 
-    for (std::shared_ptr<Region>region : regions) {
+    for (Region *region : regions) {
       auto i = 1;
       auto h = 0.f;
       for (auto n: region->neighbors) {

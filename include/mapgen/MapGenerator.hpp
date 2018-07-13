@@ -14,12 +14,12 @@
 #include "WeatherManager.hpp"
 #include "micropather.h"
 
-typedef std::function<bool(std::shared_ptr<Region>, std::shared_ptr<Region>)> sameFunc;
-typedef std::function<void(std::shared_ptr<Region>, std::shared_ptr<Cluster>)> assignFunc;
-typedef std::function<void(std::shared_ptr<Region>, std::shared_ptr<Cluster>,
-                           std::map<std::shared_ptr<Region>, std::shared_ptr<Cluster>> *)>
+typedef std::function<bool(Region *, Region *)> sameFunc;
+typedef std::function<void(Region *, Cluster *)> assignFunc;
+typedef std::function<void(Region *, Cluster *,
+                           std::map<Region *, Cluster *> *)>
     reassignFunc;
-typedef std::function<std::shared_ptr<Cluster>(std::shared_ptr<Region>)> createFunc;
+typedef std::function<Cluster *(Region *)> createFunc;
 
 class MapGenerator {
 public:
@@ -39,9 +39,9 @@ public:
   int getRelax();
   float getFrequency();
   int getSeed();
-  std::shared_ptr<Region> getRegion(std::shared_ptr<Region> r, sf::Vector2f pos);
+  Region *getRegion(Region* r, sf::Vector2f pos);
   void seed();
-  RegionList getRegions();
+  std::vector<Region *> getRegions();
   void setMapTemplate(const char *t);
   void startSimulation();
 
@@ -49,7 +49,7 @@ public:
   bool ready;
   Map *map;
   Simulator *simulator;
-  std::shared_ptr<WeatherManager> weather = nullptr;
+  std::unique_ptr<WeatherManager> weather;
 
   template <typename Iter> Iter select_randomly(Iter start, Iter end);
 
@@ -64,7 +64,7 @@ private:
   void makeClusters();
   void makeMegaClusters();
   void makeRelax();
-  void makeRiver(std::shared_ptr<Region>r);
+  void makeRiver(Region *r);
   void calcHumidity();
   void calcTemp();
   void simplifyRivers();
@@ -73,7 +73,7 @@ private:
   void makeCities();
   void makeStates();
 
-  void getSea(RegionList *seas, std::shared_ptr<Region> base, std::shared_ptr<Region> r);
+  void getSea(std::vector<Region *> *seas, Region *base, Region *r);
   int _seed;
   VoronoiDiagramGenerator _vdg;
   int _pointsCount;
@@ -84,10 +84,10 @@ private:
   float _freq;
   sf::Rect<double> _bbox;
   std::vector<sf::Vector2<double>> *_sites;
-  std::map<Cell *, std::shared_ptr<Region>> _cells;
+  std::map<Cell *, Region *> _cells;
   std::unique_ptr<Diagram> _diagram;
   Cell *_highestCell;
-  std::map<std::shared_ptr<Region>, Cell *> cellsMap;
+  std::map<Region *, Cell *> cellsMap;
   std::vector<State *> states;
 
   micropather::MicroPather *_pather;
@@ -100,7 +100,7 @@ private:
                       sf::Rect<double> &bbox, unsigned int dx, unsigned int dy,
                       unsigned int numSites);
 
-  std::vector<std::shared_ptr<Cluster>> clusterize(RegionList regions,
+  std::vector<Cluster *> clusterize(std::vector<Region *> regions,
                                     sameFunc isSame, assignFunc assignCluster,
                                     reassignFunc reassignCluster,
                                     createFunc createCluster);

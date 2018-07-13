@@ -1,10 +1,9 @@
 #include <cmath>
-#include <memory>
 #include "mapgen/Map.hpp"
 
 Map::~Map(){};
 
-float Map::getRegionDistance(std::shared_ptr<Region>r, std::shared_ptr<Region>r2) {
+float Map::getRegionDistance(Region *r, Region *r2) {
   Point p = r->site;
   Point p2 = r2->site;
   double distancex = (p2->x - p->x);
@@ -38,12 +37,12 @@ float Map::getRegionDistance(std::shared_ptr<Region>r, std::shared_ptr<Region>r2
 }
 
 float Map::LeastCostEstimate(void *stateStart, void *stateEnd) {
-  return getRegionDistance(*static_cast<std::shared_ptr<Region>*>(stateStart), *static_cast<std::shared_ptr<Region>*>(stateEnd));
+  return getRegionDistance((Region *)stateStart, (Region *)stateEnd);
 };
 
 void Map::AdjacentCost(void *state,
                        MP_VECTOR<micropather::StateCost> *neighbors) {
-  auto r = (*static_cast<std::shared_ptr<Region>*>(state));
+  auto r = ((Region *)state);
   for (auto n : r->neighbors) {
 
     if (n->biom == biom::LAKE) {
@@ -64,10 +63,7 @@ void Map::AdjacentCost(void *state,
     }
 
     micropather::StateCost nodeCost = {
-        (void *)&n, getRegionDistance(
-          *static_cast<std::shared_ptr<Region>*>(state),
-          std::shared_ptr<Region>(n)
-        )};
+        (void *)n, getRegionDistance((Region *)state, (Region *)n)};
     neighbors->push_back(nodeCost);
   }
 };

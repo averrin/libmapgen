@@ -9,13 +9,13 @@
 #include <random>
 #include <algorithm>
 
-template <typename T> using filterFunc = std::function<bool(std::shared_ptr<T>)>;
-template <typename T> using sortFunc = std::function<bool(std::shared_ptr<T>, std::shared_ptr<T>)>;
+template <typename T> using filterFunc = std::function<bool(T *)>;
+template <typename T> using sortFunc = std::function<bool(T *, T *)>;
 
 template <typename T>
-std::vector<std::shared_ptr<T>> filterObjects(std::vector<std::shared_ptr<T>> regions, filterFunc<T> filter,
+std::vector<T *> filterObjects(std::vector<T *> regions, filterFunc<T> filter,
                                sortFunc<T> sort) {
-  std::vector<std::shared_ptr<T>> places;
+  std::vector<T *> places;
 
   std::copy_if(regions.begin(), regions.end(), std::back_inserter(places),
                filter);
@@ -44,7 +44,7 @@ bool sitesOrdered(const sf::Vector2<double> &s1,
   return false;
 }
 
-bool clusterOrdered(std::shared_ptr<Cluster>s1, std::shared_ptr<Cluster>s2) {
+bool clusterOrdered(Cluster *s1, Cluster *s2) {
   if (s1->regions.size() > s2->regions.size())
     return true;
   return false;
@@ -111,12 +111,12 @@ void MapGenerator::makeStates() {
 
   auto regions = filterObjects(
       map->regions,
-      (filterFunc<Region>)[&](std::shared_ptr<Region> r) { return r->megaCluster->isLand; },
-      (sortFunc<Region>)[&](std::shared_ptr<Region> r, std::shared_ptr<Region> r2) { return false; });
+      (filterFunc<Region>)[&](Region * r) { return r->megaCluster->isLand; },
+      (sortFunc<Region>)[&](Region * r, Region * r2) { return false; });
 
   auto sc = clusterize(
-      regions, [&](std::shared_ptr<Region>r, std::shared_ptr<Region>rn) { return r->state != rn->state; },
-      [&](std::shared_ptr<Region>r, std::shared_ptr<Cluster>knownCluster) {
+      regions, [&](Region *r, Region *rn) { return r->state != rn->state; },
+      [&](Region *r, Cluster *knownCluster) {
         r->stateCluster = knownCluster;
         if (std::find(knownCluster->regions.begin(),
                       knownCluster->regions.end(),
@@ -124,9 +124,9 @@ void MapGenerator::makeStates() {
           knownCluster->regions.push_back(r);
         }
       },
-      [&](std::shared_ptr<Region>rn, std::shared_ptr<Cluster>knownCluster,
-          std::map<std::shared_ptr<Region>, std::shared_ptr<Cluster>> *_clusters) {
-        std::shared_ptr<Cluster>oldCluster = rn->stateCluster;
+      [&](Region *rn, Cluster *knownCluster,
+          std::map<Region *, Cluster *> *_clusters) {
+        Cluster *oldCluster = rn->stateCluster;
         rn->stateCluster = knownCluster;
         if (std::find(knownCluster->regions.begin(),
                       knownCluster->regions.end(),
@@ -135,7 +135,7 @@ void MapGenerator::makeStates() {
         }
         if (oldCluster != knownCluster) {
           auto kcrn = knownCluster->regions;
-          for (std::shared_ptr<Region>orn : oldCluster->regions) {
+          for (Region *orn : oldCluster->regions) {
             orn->stateCluster = knownCluster;
             if (std::find(kcrn.begin(), kcrn.end(), orn) == kcrn.end()) {
               knownCluster->regions.push_back(orn);
@@ -145,8 +145,8 @@ void MapGenerator::makeStates() {
           oldCluster->regions.clear();
         }
       },
-      [&](std::shared_ptr<Region>r) {
-        auto cluster = std::make_shared<Cluster>();
+      [&](Region *r) {
+        auto cluster = new Cluster();
         cluster->megaCluster = r->megaCluster;
         if (r->state != nullptr) {
           cluster->states.push_back(r->state);
@@ -157,7 +157,7 @@ void MapGenerator::makeStates() {
       );
 
   sc.erase(std::remove_if(sc.begin(), sc.end(),
-                          [&](std::shared_ptr<Cluster>c) {
+                          [&](Cluster *c) {
                             return c->regions.size() == 0 ||
                                    c->states.size() == 0;
                           }),
@@ -168,7 +168,7 @@ void MapGenerator::makeStates() {
 
   for (auto sc : map->stateClusters) {
     if (sc->regions.size() < 200) {
-      std::shared_ptr<StateCluster>oc;
+      StateCluster *oc = nullptr;
 
       for (auto r : sc->regions) {
         for (auto n : r->neighbors) {
@@ -203,7 +203,7 @@ void MapGenerator::makeStates() {
 
   map->stateClusters.erase(
       std::remove_if(map->stateClusters.begin(), map->stateClusters.end(),
-                     [&](std::shared_ptr<Cluster>c) {
+                     [&](Cluster *c) {
                        return c->regions.size() == 0 || c->states.size() == 0;
                      }),
       map->stateClusters.end());
@@ -316,7 +316,7 @@ void MapGenerator::update() {
 
   map = new Map();
   simulator = new Simulator(map, _seed);
-  weather = std::make_shared<WeatherManager>();
+  weather = std::make_unique<WeatherManager>();
   makeHeights();
   makeDiagram();
 
@@ -352,8 +352,8 @@ void MapGenerator::startSimulation() {
   ready = true;
 }
 
-void MapGenerator::getSea(std::vector<std::shared_ptr<Region>> *seas, std::shared_ptr<Region>base,
-                          std::shared_ptr<Region>r) {
+void MapGenerator::getSea(std::vector<Region *> *seas, Region *base,
+                          Region *r) {
   for (auto n : r->neighbors) {
     if (!n->megaCluster->isLand &&
         std::find(seas->begin(), seas->end(), n) == seas->end()) {
@@ -369,22 +369,22 @@ void MapGenerator::getSea(std::vector<std::shared_ptr<Region>> *seas, std::share
 void MapGenerator::makeCities() {
   map->status = "Founding cities...";
 
-  std::vector<std::shared_ptr<Region>> places;
+  std::vector<Region *> places;
 
-  std::vector<std::shared_ptr<Region>> cache;
+  std::vector<Region *> cache;
   for (auto mc : map->megaClusters) {
     if (!mc->isLand) {
       continue;
     }
     places = filterObjects(mc->regions,
-                           (filterFunc<Region>)[&](std::shared_ptr<Region> r) {
+                           (filterFunc<Region>)[&](Region * r) {
                              bool cond = r->city == nullptr &&
                                          r->minerals > 1 &&
                                          r->biom != biom::LAKE &&
                                          r->biom != biom::SNOW &&
                                          r->biom != biom::ICE;
                              // if (cond && std::none_of(cache.begin(),
-                             // cache.end(), [&](std::shared_ptr<Region>ri){
+                             // cache.end(), [&](Region *ri){
                              //       for (auto rn : cache) {
                              //         if (mg::getDistance(ri->site, rn->site)
                              //         < 20) {
@@ -399,7 +399,7 @@ void MapGenerator::makeCities() {
                              // }
                              return cond;
                            },
-                           (sortFunc<Region>)[&](std::shared_ptr<Region> r, std::shared_ptr<Region> r2) {
+                           (sortFunc<Region>)[&](Region * r, Region * r2) {
                              if (r->minerals > r2->minerals) {
                                return true;
                              }
@@ -417,7 +417,7 @@ void MapGenerator::makeCities() {
         continue;
       }
       // TODO: decluster it.
-      auto c = std::make_shared<City>(r, names::generateCityName(_gen), MINE);
+      City *c = new City(r, names::generateCityName(_gen), MINE);
       map->cities.push_back(c);
       mc->cities.push_back(c);
     }
@@ -429,11 +429,11 @@ void MapGenerator::makeCities() {
     }
     places = filterObjects(
         mc->regions,
-        (filterFunc<Region>)[&](std::shared_ptr<Region> r) {
+        (filterFunc<Region>)[&](Region * r) {
           return r->city == nullptr && r->nice > 0.7 &&
                  r->biom.feritlity > 0.7 && r->biom != biom::LAKE;
         },
-        (sortFunc<Region>)[&](std::shared_ptr<Region> r, std::shared_ptr<Region> r2) {
+        (sortFunc<Region>)[&](Region * r, Region * r2) {
           if (r->nice * r->biom.feritlity > r2->nice * r2->biom.feritlity) {
             return true;
           }
@@ -450,7 +450,7 @@ void MapGenerator::makeCities() {
       if (!canPlace) {
         continue;
       }
-      auto c = std::make_shared<City>(r, names::generateCityName(_gen), AGRO);
+      City *c = new City(r, names::generateCityName(_gen), AGRO);
       map->cities.push_back(c);
       mc->cities.push_back(c);
     }
@@ -463,10 +463,10 @@ void MapGenerator::makeCities() {
 
     int b = 200;
 
-    std::vector<std::shared_ptr<Region>> cache;
+    std::vector<Region *> cache;
     places = filterObjects(
         mc->regions,
-        (filterFunc<Region>)[&](std::shared_ptr<Region> r) {
+        (filterFunc<Region>)[&](Region * r) {
           if (r->megaCluster->cities.size() == 0) {
             return false;
           }
@@ -481,7 +481,7 @@ void MapGenerator::makeCities() {
           if (!deep || r->city != nullptr) {
             return false;
           }
-          std::vector<std::shared_ptr<Region>> seas;
+          std::vector<Region *> seas;
           getSea(&seas, r, r);
           int sc = int(seas.size());
 
@@ -499,7 +499,7 @@ void MapGenerator::makeCities() {
 
           return cond;
         },
-        (sortFunc<Region>)[&](std::shared_ptr<Region> r, std::shared_ptr<Region> r2) { return false; });
+        (sortFunc<Region>)[&](Region * r, Region * r2) { return false; });
 
     for (auto r : places) {
       bool canPlace = true;
@@ -513,7 +513,7 @@ void MapGenerator::makeCities() {
         continue;
       }
 
-      auto c = std::make_shared<City>(r, names::generateCityName(_gen), PORT);
+      City *c = new City(r, names::generateCityName(_gen), PORT);
       map->cities.push_back(c);
       mc->cities.push_back(c);
       mc->hasPort = true;
@@ -524,7 +524,7 @@ void MapGenerator::makeCities() {
     if (!mc->hasPort && mc->cities.size() > 0) {
       places = filterObjects(
           mc->regions,
-          (filterFunc<Region>)[&](std::shared_ptr<Region> r) {
+          (filterFunc<Region>)[&](Region * r) {
 
             bool deep = false;
             for (auto n : r->neighbors) {
@@ -538,7 +538,7 @@ void MapGenerator::makeCities() {
             }
             return true;
           },
-          (sortFunc<Region>)[&](std::shared_ptr<Region> r, std::shared_ptr<Region> r2) { return false; });
+          (sortFunc<Region>)[&](Region * r, Region * r2) { return false; });
 
       if (places.size() == 0) {
         continue;
@@ -546,7 +546,7 @@ void MapGenerator::makeCities() {
 
       auto r = *select_randomly(places.begin(), places.end());
 
-      auto c = std::make_shared<City>(r, names::generateCityName(_gen), PORT);
+      City *c = new City(r, names::generateCityName(_gen), PORT);
       map->cities.push_back(c);
       mc->cities.push_back(c);
       mc->hasPort = true;
@@ -578,7 +578,7 @@ void MapGenerator::makeBorders() {
 
       Cell *c = r->cell;
       for (auto n : c->getNeighbors()) {
-        std::shared_ptr<Region>rn = _cells[n];
+        Region *rn = _cells[n];
         if (rn->biom != r->biom) {
           for (auto e : n->getEdges()) {
             if (c->pointIntersection(e->startPoint()->x, e->startPoint()->y) ==
@@ -664,12 +664,12 @@ void MapGenerator::makeHeights() {
   heightMapBuilder.Build();
 }
 
-void MapGenerator::makeRiver(std::shared_ptr<Region>r) {
+void MapGenerator::makeRiver(Region *r) {
   map->status = "Making rivers...";
   std::vector<Cell *> visited;
   Cell *c = r->cell;
   float z = r->getHeight(r->site);
-  auto rvr = std::make_shared<River>();
+  River *rvr = new River();
 
   rvr->name = names::generateRiverName(_gen);
   PointList *river = new PointList();
@@ -742,7 +742,7 @@ void MapGenerator::makeRivers() {
   map->status = "Making rivers...";
   map->rivers.clear();
 
-  std::vector<std::shared_ptr<Region>> localMaximums;
+  std::vector<Region *> localMaximums;
   for (auto cluster : map->megaClusters) {
     if (!cluster->isLand || cluster->regions.size() < 50) {
       continue;
@@ -755,7 +755,7 @@ void MapGenerator::makeRivers() {
       auto ns = c->getNeighbors();
       if (std::count_if(ns.begin(), ns.end(),
                         [&](Cell *oc) {
-                          std::shared_ptr<Region>reg = _cells[oc];
+                          Region *reg = _cells[oc];
                           return reg->getHeight(reg->site) >
                                  r->getHeight(r->site);
                         }) == 0 &&
@@ -825,7 +825,7 @@ void MapGenerator::makeFinalRegions() {
       auto ns = c->getNeighbors();
       if (std::count_if(ns.begin(), ns.end(),
                         [&](Cell *oc) {
-                          std::shared_ptr<Region>reg = _cells[oc];
+                          Region *reg = _cells[oc];
                           return reg->minerals > r->minerals;
                         }) == 0 &&
           r->minerals != 0) {
@@ -834,7 +834,7 @@ void MapGenerator::makeFinalRegions() {
 
       if (std::count_if(ns.begin(), ns.end(),
                         [&](Cell *oc) {
-                          std::shared_ptr<Region>reg = _cells[oc];
+                          Region *reg = _cells[oc];
                           return reg->nice >= r->nice;
                         }) == 0 &&
           r->biom != biom::LAKE) {
@@ -873,7 +873,7 @@ void MapGenerator::makeRegions() {
     sf::Vector2<double> &p = c->site.p;
     h.insert(std::make_pair(&p, ht));
     Biom b = ht < 0.0625 ? biom::SEA : biom::LAND;
-    auto region = std::make_shared<Region>(b, verts, h, &p);
+    Region *region = new Region(b, verts, h, &p);
     region->city = nullptr;
     region->cell = c;
     region->humidity = biom::DEFAULT_HUMIDITY;
@@ -891,22 +891,23 @@ void MapGenerator::makeRegions() {
   }
 }
 
-bool isDiscard(const std::shared_ptr<Cluster>c) { return c->regions.size() == 0; }
+bool isDiscard(const Cluster *c) { return c->regions.size() == 0; }
 
 
-std::vector<std::shared_ptr<Cluster>> MapGenerator::clusterize(std::vector<std::shared_ptr<Region>> regions,
+std::vector<Cluster *> MapGenerator::clusterize(std::vector<Region *> regions,
                                                 sameFunc isNotSame,
                                                 assignFunc assignCluster,
                                                 reassignFunc reassignCluster,
                                                 createFunc createCluster) {
-  std::vector<std::shared_ptr<Cluster>> clusters;
+  std::vector<Cluster *> clusters;
 
-  std::map<std::shared_ptr<Region>, std::shared_ptr<Cluster>> _clusters;
+  std::map<Region *, Cluster *> _clusters;
   for (auto r : regions) {
-  fmt::print("hi in clusterize r\n");
+    Cell *c = r->cell;
     bool cu = true;
-    std::shared_ptr<Cluster> knownCluster = nullptr;
-    for (auto rn : r->neighbors) {
+    Cluster *knownCluster = nullptr;
+    for (auto n : c->getNeighbors()) {
+      Region *rn = _cells[n];
       if (isNotSame(r, rn)) {
         r->border = true;
       } else if (_clusters.count(rn) != 0) {
@@ -945,17 +946,17 @@ void MapGenerator::makeMegaClusters() {
 
   auto mc = clusterize(
       map->regions,
-      [&](std::shared_ptr<Region>r, std::shared_ptr<Region>rn) { return r->biom != rn->biom; },
-      [&](std::shared_ptr<Region>r, std::shared_ptr<Cluster>knownCluster) {
+      [&](Region *r, Region *rn) { return r->biom != rn->biom; },
+      [&](Region *r, Cluster *knownCluster) {
         r->megaCluster = knownCluster;
         r->cluster = knownCluster;
       },
-      [&](std::shared_ptr<Region>rn, std::shared_ptr<Cluster>knownCluster,
-          std::map<std::shared_ptr<Region>, std::shared_ptr<Cluster>> *_clusters) {
-        auto oldCluster = rn->megaCluster;
+      [&](Region *rn, Cluster *knownCluster,
+          std::map<Region *, Cluster *> *_clusters) {
+        Cluster *oldCluster = rn->megaCluster;
         if (oldCluster != knownCluster) {
           rn->cluster = knownCluster;
-          for (auto orn : oldCluster->regions) {
+          for (Region *orn : oldCluster->regions) {
             orn->cluster = knownCluster;
             orn->megaCluster = knownCluster;
             auto kcrn = knownCluster->regions;
@@ -967,8 +968,8 @@ void MapGenerator::makeMegaClusters() {
           oldCluster->regions.clear();
         }
       },
-      [&](std::shared_ptr<Region>r) {
-        auto cluster = std::make_shared<MegaCluster>();
+      [&](Region *r) {
+        Cluster *cluster = new MegaCluster();
         cluster->isLand = r->biom == biom::LAND;
         cluster->megaCluster = cluster;
         if (cluster->isLand) {
@@ -989,13 +990,13 @@ void MapGenerator::makeClusters() {
   map->status = "Meeting with neighbors...";
   map->clusters.clear();
   cellsMap.clear();
-  std::map<Cell *, std::shared_ptr<Cluster>> _clusters;
+  std::map<Cell *, Cluster *> _clusters;
   for (auto c : _diagram->cells) {
-    std::shared_ptr<Region>r = _cells[c];
+    Region *r = _cells[c];
     bool cu = true;
-    std::shared_ptr<Cluster>knownCluster = nullptr;
+    Cluster *knownCluster = nullptr;
     for (auto n : c->getNeighbors()) {
-      std::shared_ptr<Region>rn = _cells[n];
+      Region *rn = _cells[n];
       if (r->biom != rn->biom) {
         r->border = true;
       } else if (_clusters.count(n) != 0) {
@@ -1006,11 +1007,11 @@ void MapGenerator::makeClusters() {
           _clusters[c] = _clusters[n];
           knownCluster = _clusters[n];
         } else {
-          std::shared_ptr<Cluster>oldCluster = rn->cluster;
+          Cluster *oldCluster = rn->cluster;
           if (oldCluster != knownCluster) {
             rn->cluster = knownCluster;
             _clusters[n] = knownCluster;
-            for (std::shared_ptr<Region>orn : oldCluster->regions) {
+            for (Region *orn : oldCluster->regions) {
               orn->cluster = knownCluster;
               auto kcrn = knownCluster->regions;
               if (std::find(kcrn.begin(), kcrn.end(), orn) == kcrn.end()) {
@@ -1029,9 +1030,9 @@ void MapGenerator::makeClusters() {
       }
     }
     if (cu) {
-      auto cluster = std::make_shared<Cluster>();
+      Cluster *cluster = new Cluster();
       char buff[100];
-      snprintf(buff, sizeof(buff), "%p", (void *)cluster.get());
+      snprintf(buff, sizeof(buff), "%p", (void *)cluster);
       std::string buffAsStdStr = buff;
       cluster->name = buffAsStdStr;
       cluster->hasRiver = false;
@@ -1053,11 +1054,10 @@ void MapGenerator::makeClusters() {
   }
 }
 
-std::shared_ptr<Region> MapGenerator::getRegion(std::shared_ptr<Region> startRegion, sf::Vector2f pos) {
+Region *MapGenerator::getRegion(Region* startRegion, sf::Vector2f pos) {
   for (auto region : map->regions) {
       if (region->cell->pointIntersection(pos.x, pos.y) != -1) {
-        std::shared_ptr<Region> tmp_ptr(region);
-        return tmp_ptr;
+        return region;
       }
   }
   return nullptr;

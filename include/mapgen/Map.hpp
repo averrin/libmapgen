@@ -11,21 +11,21 @@ class Map : public micropather::Graph {
 public:
   ~Map();
 
-  std::vector<std::shared_ptr<MegaCluster>> megaClusters;
-  std::vector<std::shared_ptr<Cluster>> clusters;
-  std::vector<std::shared_ptr<Cluster>> stateClusters;
+  std::vector<MegaCluster *> megaClusters;
+  std::vector<Cluster *> clusters;
+  std::vector<Cluster *> stateClusters;
 
   std::vector<State *> states;
-  RegionList regions;
-  std::vector<std::shared_ptr<River>> rivers;
-  std::vector<std::shared_ptr<City>> cities;
-  std::vector<std::shared_ptr<Location>> locations;
+  std::vector<Region *> regions;
+  std::vector<River *> rivers;
+  std::vector<City *> cities;
+  std::vector<Location *> locations;
   std::vector<Road *> roads;
-  std::map<std::pair<std::shared_ptr<Location>, std::shared_ptr<Location>>, Road*> roadMap;
+  std::map<std::pair<Location*, Location*>, Road*> roadMap;
 
   std::string status = "";
 
-  float getRegionDistance(std::shared_ptr<Region>r, std::shared_ptr<Region>r2);
+  float getRegionDistance(Region *r, Region *r2);
   float LeastCostEstimate(void *stateStart, void *stateEnd);
   void AdjacentCost(void *state, MP_VECTOR<micropather::StateCost> *adjacent);
   void PrintStateInfo(void *state);
