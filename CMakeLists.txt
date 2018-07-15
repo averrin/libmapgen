@@ -8,7 +8,7 @@ include_directories (include ${PROJECT_SOURCE_DIR}
 	"${PROJECT_SOURCE_DIR}/include"
 	"${PROJECT_SOURCE_DIR}/include/Voronoi/include"
 )
-file(GLOB VLIB_SOURCE "${PROJECT_BINARY_DIR}/include/Voronoi/src/*.cpp" "${PROJECT_SOURCE_DIR}/include/Voronoi/include/*.h")
+file(GLOB VLIB_SOURCE "${PROJECT_SOURCE_DIR}/include/Voronoi/src/*.cpp" "${PROJECT_SOURCE_DIR}/include/Voronoi/include/*.h")
 add_library(voronoi ${VLIB_SOURCE})
 
 #compile all *.cpp source files under src folder
