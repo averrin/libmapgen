@@ -357,6 +357,8 @@ void Simulator::upgradeCities() {
       continue;
     }
     _cities[0]->isCapital = true;
+    _cities[0]->region->location->type = CAPITAL;
+    _cities[0]->region->location->typeName = "Capital";
     mg::info("Capital:", *_cities[0]);
 
     //TODO: refine city tiers
