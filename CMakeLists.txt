@@ -4,6 +4,7 @@ set (CMAKE_BUILD_TYPE Debug)
 
 #include *.h files under include folder and  
 #the project's output folder e.g. Debug
+add_definitions(-D_USE_MATH_DEFINES)
 include_directories (include ${PROJECT_SOURCE_DIR}
 	"${PROJECT_SOURCE_DIR}/include"
 	"${PROJECT_SOURCE_DIR}/include/Voronoi/include"
