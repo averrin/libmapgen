@@ -6,4 +6,4 @@ This is gui-less version of my c++ project [mapgen](https://github.com/averrin/m
 
 # Usage
 
-You can use this lib as [Native plugin](https://docs.unity3d.com/Manual/NativePlugins.html). Signatures for calls is [here](https://github.com/averrin/mapgen-unity/blob/master/src/GeneratorFacade.h) 
+You can use this lib as [Native plugin](https://docs.unity3d.com/Manual/NativePlugins.html). Signatures for calls are [here](https://github.com/averrin/mapgen-unity/blob/master/src/GeneratorFacade.h) 
